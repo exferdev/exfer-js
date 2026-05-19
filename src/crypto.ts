@@ -200,7 +200,7 @@ export async function importKeyFile(
 
   const { argon2id } = await import('@noble/hashes/argon2.js')
   const key = argon2id(new TextEncoder().encode(passphrase), salt, {
-    m: 65536, t: 2, p: 1, dkLen: 32,
+    m: 262_144, t: 3, p: 1, dkLen: 32,
   })
 
   const cryptoKey = await crypto.subtle.importKey(
