@@ -183,4 +183,4 @@ console.log('txId:', result.txId)
 
 ## License
 
-MIT © [faryiiii](https://github.com/faryiiii)
+MIT © [exferdev](https://github.com/exferdev)
