@@ -8,7 +8,7 @@ JavaScript / TypeScript SDK for the [Exfer](https://github.com/ahuman-exfer/exfe
 ## Features
 
 - 🔑 **Key management** — generate key pairs, derive from mnemonic, import `.key` files
-- 📝 **Transaction building** — construct and sign UTXO transactions
+- 📝 **Transaction building** — construct and sign UTXO transactions (single or batch up to 200 recipients)
 - 🌐 **RPC client** — typed JSON-RPC client for Exfer nodes
 - 🏦 **Exchange client** — deposit monitoring, confirmations, batch balances, withdrawals
 - 🔒 **Browser-safe** — private keys never leave the client
@@ -81,6 +81,32 @@ const result = await client.sendRawTransaction(tx.txHex)
 console.log('TxID:', result.tx_id ?? tx.txId)
 ```
 
+### Batch transaction (up to 200 recipients)
+
+```typescript
+import { createClient, buildBatchTransaction, parseExfer } from 'exfer-js'
+
+const client = createClient()
+const { utxos } = await client.getAddressUtxos(wallet.addressHex)
+
+const tx = await buildBatchTransaction({
+  utxos,
+  recipients: [
+    { address: addr1, amount: parseExfer('1.5') },
+    { address: addr2, amount: parseExfer('2.0') },
+    // ... up to 200 entries
+  ],
+  privateKey:    wallet.privateKey,
+  publicKey:     wallet.publicKey,
+  senderAddress: wallet.address,
+  // fee is auto-calculated from the consensus cost formula; or pass fee: bigint to override
+})
+
+console.log(`Fee: ${tx.fee} exfers`)
+const result = await client.sendRawTransaction(tx.txHex)
+console.log('TxID:', result.tx_id ?? tx.txId)
+```
+
 ### Format amounts
 
 ```typescript
@@ -107,7 +133,21 @@ parseExfer('10.5')          // 1050000000n
 
 | Function | Description |
 |---|---|
-| `buildTransaction(params)` | Build and sign a transfer transaction |
+| `buildTransaction(params)` | Build and sign a single-recipient transfer |
+| `buildBatchTransaction(params)` | Build and sign a batch transfer (up to 200 recipients) |
+
+**`buildBatchTransaction` params:**
+
+| Field | Type | Description |
+|---|---|---|
+| `utxos` | `Utxo[]` | Available UTXOs from the sender |
+| `recipients` | `BatchRecipient[]` | Up to 200 `{ address: string, amount: bigint }` entries |
+| `privateKey` | `Uint8Array` | Sender's 32-byte private key seed |
+| `publicKey` | `Uint8Array` | Sender's 32-byte public key |
+| `senderAddress` | `Uint8Array` | Sender's 32-byte address (receives change) |
+| `fee` | `bigint` *(optional)* | Override fee in exfers; omit to auto-calculate minimum |
+
+When `fee` is omitted the minimum fee is derived from the Exfer consensus cost formula (Phase-1 P2PKH: script evaluation + witness/tx deserialisation + UTXO I/O + SMT updates, divided by 100). Two passes are used so the fee accounts for the actual UTXO count selected.
 
 ### RPC Client
 
