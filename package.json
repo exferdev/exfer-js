@@ -36,7 +36,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/exferdev/exfer-js"
+    "url": "git+https://github.com/exferdev/exfer-js.git"
   },
   "homepage": "https://exfer.dev",
   "engines": {
