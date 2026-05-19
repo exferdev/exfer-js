@@ -40,8 +40,8 @@ export {
 } from './mnemonic.js'
 
 // ── Transaction ───────────────────────────────────────────────────────────────
-export { buildTransaction } from './transaction.js'
-export type { Utxo, TxOutput, UnsignedTx, SignedTx } from './transaction.js'
+export { buildTransaction, buildBatchTransaction } from './transaction.js'
+export type { Utxo, TxOutput, UnsignedTx, SignedTx, BatchRecipient } from './transaction.js'
 
 // ── RPC Client ────────────────────────────────────────────────────────────────
 export { ExferRpcClient, createClient } from './rpc.js'
