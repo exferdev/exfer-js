@@ -50,9 +50,12 @@ function serializeOutput(value: bigint, script: Uint8Array): Uint8Array {
 }
 
 function selectUtxos(utxos: Utxo[], need: bigint): Utxo[] {
+  // Sort largest-value first to minimise the number of inputs selected,
+  // which keeps fees low and avoids FeeBelowMinimum errors.
+  const sorted = [...utxos].sort((a, b) => b.value - a.value)
   let total = 0n
   const selected: Utxo[] = []
-  for (const u of utxos) {
+  for (const u of sorted) {
     selected.push(u)
     total += BigInt(u.value)
     if (total >= need) return selected
@@ -84,25 +87,40 @@ export async function buildTransaction(params: {
 }): Promise<SignedTx> {
   const {
     utxos, toAddress, amount, privateKey, publicKey, senderAddress,
-    fee = DEFAULT_FEE,
   } = params
 
   const recipientScript = hexToBytes(toAddress)
   if (recipientScript.length !== 32)
     throw new Error('Recipient address must be a 64-character hex string (32 bytes)')
 
-  // 1. Select UTXOs
-  const need     = amount + fee
-  const selected = selectUtxos(utxos, need)
-  const total    = selected.reduce((s, u) => s + BigInt(u.value), 0n)
-  const change   = total - need
-  const hasChange = change >= DUST_THRESHOLD
-  const outCount  = hasChange ? 2 : 1
+  // ── UTXO selection with 2-pass fee estimation ─────────────────────────────
+  // Pass 1: rough estimate using 1 input to get a fee in the right ballpark.
+  // Skip auto-calculation if the caller explicitly provided a fee.
+  let fee = params.fee ?? estimateFee(1, 2)
 
-  // 2. tx_header: input_count(u16LE) || output_count(u16LE)
+  let selected  = selectUtxos(utxos, amount + fee)
+  let total     = selected.reduce((s, u) => s + BigInt(u.value), 0n)
+  let change    = total - amount - fee
+  let hasChange = change >= DUST_THRESHOLD
+
+  // Pass 2: recompute with actual input count (only when fee was auto-calculated).
+  if (params.fee === undefined) {
+    const refinedFee = estimateFee(selected.length, hasChange ? 2 : 1)
+    if (refinedFee !== fee) {
+      fee       = refinedFee
+      selected  = selectUtxos(utxos, amount + fee)
+      total     = selected.reduce((s, u) => s + BigInt(u.value), 0n)
+      change    = total - amount - fee
+      hasChange = change >= DUST_THRESHOLD
+    }
+  }
+
+  const outCount = hasChange ? 2 : 1
+
+  // tx_header: input_count(u16LE) || output_count(u16LE)
   const txHeader = concat(u16LE(selected.length), u16LE(outCount))
 
-  // 3. tx_body: inputs || outputs
+  // tx_body: inputs || outputs
   const inputs = concat(
     ...selected.map(u => concat(hexToBytes(u.tx_id), u32LE(u.output_index)))
   )
