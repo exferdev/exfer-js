@@ -6,21 +6,21 @@ export interface BlockHeight {
 }
 
 export interface Block {
-  hash:             string
-  height:           number
-  timestamp:        number
-  tx_count:         number
-  transactions:     string[]
-  prev_block_id:    string
+  hash:              string
+  height:            number
+  timestamp:         number
+  tx_count:          number
+  transactions:      string[]
+  prev_block_id:     string
   difficulty_target: string
-  nonce:            number
+  nonce:             number
 }
 
 export interface Transaction {
-  tx_id:        string
-  tx_hex:       string
-  in_mempool:   boolean
-  block_hash?:  string
+  tx_id:         string
+  tx_hex:        string
+  in_mempool:    boolean
+  block_hash?:   string
   block_height?: number
 }
 
@@ -44,6 +44,34 @@ export interface AddressBalance {
 
 export interface BroadcastResult {
   tx_id?: string
+}
+
+/**
+ * Result of get_output_spent_by (v1.11.8+).
+ * Tells you which transaction consumed a given output.
+ */
+export interface OutputSpentBy {
+  /** Whether this output has been spent */
+  spent:           boolean
+  /** The transaction that spent this output (null if unspent) */
+  spending_tx_id:  string | null
+  /** Index of the input in the spending transaction */
+  input_index:     number | null
+  /** Block height at which it was spent */
+  block_height:    number | null
+}
+
+/**
+ * Result of try_parse_htlc (v1.11.8+).
+ * Parses a script as an HTLC and returns its fields if successful.
+ */
+export interface HtlcInfo {
+  /** Whether the script is a valid HTLC */
+  is_htlc:         boolean
+  recipient?:      string
+  sender?:         string
+  hash_lock?:      string
+  expiry_height?:  number
 }
 
 // ── Client ────────────────────────────────────────────────────────────────────
@@ -92,6 +120,30 @@ export class ExferRpcClient {
   /** Broadcast a signed raw transaction */
   sendRawTransaction(txHex: string) {
     return this.call<BroadcastResult>('send_raw_transaction', { tx_hex: txHex })
+  }
+
+  /**
+   * Query which transaction spent a given output (v1.11.8+).
+   * Requires the node to have been started with --build-spent-by-index.
+   *
+   * @param txId         - Transaction ID of the output
+   * @param outputIndex  - Index of the output within the transaction
+   */
+  getOutputSpentBy(txId: string, outputIndex: number) {
+    return this.call<OutputSpentBy>('get_output_spent_by', {
+      tx_id:        txId,
+      output_index: outputIndex,
+    })
+  }
+
+  /**
+   * Attempt to parse a script as an HTLC (v1.11.8+).
+   * Returns HTLC fields if the script matches the pattern, otherwise is_htlc=false.
+   *
+   * @param script - Script bytes as hex string
+   */
+  tryParseHtlc(script: string) {
+    return this.call<HtlcInfo>('try_parse_htlc', { script })
   }
 }
 

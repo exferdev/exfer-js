@@ -1,6 +1,6 @@
 {
   "name": "exfer-js",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "JavaScript/TypeScript SDK for the Exfer blockchain",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

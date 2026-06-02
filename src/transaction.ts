@@ -25,9 +25,11 @@ export interface UnsignedTx {
 }
 
 export interface SignedTx {
-  txHex: string
-  txId:  string
-  fee:   bigint
+  txHex:        string
+  txId:         string
+  fee:          bigint
+  /** Total amount sent to recipients (excludes fee and change). Populated by buildBatchTransaction. */
+  totalAmount?: bigint
 }
 
 export interface BatchRecipient {
@@ -159,7 +161,16 @@ const SMT_DELETE         = 500
 const SMT_INSERT         = 500
 const MIN_FEE_DIVISOR    = 100
 
-function estimateFee(numInputs: number, numOutputs: number): bigint {
+/**
+ * Calculate the minimum fee for a transaction with the given input/output counts.
+ * Uses the Exfer consensus cost formula (cost.rs) — exact, not an estimate.
+ * Useful for AI agents and applications that need to know costs before building.
+ *
+ * @example
+ * estimateFee(1, 2)  // standard send → 88n exfers
+ * estimateFee(1, 51) // batch 50 recipients → ~388n exfers
+ */
+export function estimateFee(numInputs: number, numOutputs: number): bigint {
   const txBodyBytes  = numInputs * INPUT_BYTES + numOutputs * OUTPUT_BYTES
   const sigMsgBytes  = SIG_PREFIX_BYTES + txBodyBytes
   const txBytes      = 4 + txBodyBytes + numInputs * WITNESS_BYTES
@@ -265,8 +276,9 @@ export async function buildBatchTransaction(params: {
   const txId   = domainHash('EXFER-TX', concat(txHeader, txBody))
 
   return {
-    txHex: bytesToHex(fullTx),
-    txId:  bytesToHex(txId),
+    txHex:       bytesToHex(fullTx),
+    txId:        bytesToHex(txId),
     fee,
+    totalAmount: recipients.reduce((s, r) => s + r.amount, 0n),
   }
 }

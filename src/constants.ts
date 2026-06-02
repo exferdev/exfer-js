@@ -8,8 +8,18 @@ export const EXFERS_PER_EXFER = 100_000_000n
 /** Dust threshold in exfers */
 export const DUST_THRESHOLD = 200n
 
-/** Default transaction fee in exfers (0.001 EXFER) */
-export const DEFAULT_FEE = 100_000n
+/**
+ * Absolute minimum fee for a standard 1-in 2-out transaction (88 exfers).
+ * Derived from the Exfer consensus cost formula (cost.rs).
+ */
+export const MIN_FEE = 88n
+
+/**
+ * Default transaction fee in exfers.
+ * Matches the "average" tier on the network (MIN_FEE × 10 = 880 exfers).
+ * Previously 100_000 — corrected to reflect real network costs.
+ */
+export const DEFAULT_FEE = MIN_FEE * 10n   // 880 exfers ≈ 0.0000088 EXFER
 
 /** Block reward formula constants */
 export const REWARD_BASE      = 1n * EXFERS_PER_EXFER        // 1 EXFER

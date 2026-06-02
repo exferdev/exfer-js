@@ -3,6 +3,7 @@ export {
   GENESIS_BLOCK_ID,
   EXFERS_PER_EXFER,
   DUST_THRESHOLD,
+  MIN_FEE,
   DEFAULT_FEE,
   REWARD_BASE,
   REWARD_DECAY,
@@ -20,6 +21,10 @@ export {
   domainHash,
   formatExfer,
   parseExfer,
+  shortAddr,
+  shortHash,
+  formatHashrate,
+  timeAgo,
   estimateBlockReward,
 } from './utils.js'
 
@@ -40,7 +45,7 @@ export {
 } from './mnemonic.js'
 
 // ── Transaction ───────────────────────────────────────────────────────────────
-export { buildTransaction, buildBatchTransaction } from './transaction.js'
+export { buildTransaction, buildBatchTransaction, estimateFee } from './transaction.js'
 export type { Utxo, TxOutput, UnsignedTx, SignedTx, BatchRecipient } from './transaction.js'
 
 // ── RPC Client ────────────────────────────────────────────────────────────────
@@ -52,6 +57,8 @@ export type {
   AddressUtxos,
   AddressBalance,
   BroadcastResult,
+  OutputSpentBy,
+  HtlcInfo,
 } from './rpc.js'
 
 // ── Exchange ──────────────────────────────────────────────────────────────────
@@ -59,6 +66,36 @@ export { ExferRestClient, createRestClient, sendWithdrawal } from './exchange.js
 export type {
   Deposit,
   BalanceMap,
+  FeeSuggestions,
+  MempoolOutput,
+  PendingTx,
+  MempoolData,
+  ActivityItem,
+  AddressInfo,
+  NetworkStats,
+  WhaleItem,
+  WhalesResponse,
+  BlockTxSummary,
+  BlockDetail,
+  BlockSummary,
+  BlocksResponse,
+  TxOutputItem,
+  TxDetail,
+  HashratePoint,
+  HashrateHistory,
+  BlockTimePoint,
+  BlockTimeHistory,
+  DailyPoint,
+  DailyStats,
+  MinerItem,
+  MinersStats,
+  RichListItem,
+  RichListResponse,
+  SearchResult,
+  BatchAddressItem,
+  BatchAddressesResponse,
+  UtxoItemRest,
+  UtxosResponse,
   WithdrawalParams,
   WithdrawalResult,
 } from './exchange.js'
