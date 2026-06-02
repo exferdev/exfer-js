@@ -95,7 +95,6 @@ export async function buildTransaction(params: {
 
   // ── UTXO selection with 2-pass fee estimation ─────────────────────────────
   // Pass 1: rough estimate using 1 input to get a fee in the right ballpark.
-  // Skip auto-calculation if the caller explicitly provided a fee.
   let fee = params.fee ?? estimateFee(1, 2)
 
   let selected  = selectUtxos(utxos, amount + fee)
@@ -103,16 +102,16 @@ export async function buildTransaction(params: {
   let change    = total - amount - fee
   let hasChange = change >= DUST_THRESHOLD
 
-  // Pass 2: recompute with actual input count (only when fee was auto-calculated).
-  if (params.fee === undefined) {
-    const refinedFee = estimateFee(selected.length, hasChange ? 2 : 1)
-    if (refinedFee !== fee) {
-      fee       = refinedFee
-      selected  = selectUtxos(utxos, amount + fee)
-      total     = selected.reduce((s, u) => s + BigInt(u.value), 0n)
-      change    = total - amount - fee
-      hasChange = change >= DUST_THRESHOLD
-    }
+  // Pass 2: recompute the minimum fee with actual input/output count.
+  // Always run — even when caller provided an explicit fee — to ensure
+  // the fee is never below the network minimum (avoids FeeBelowMinimum).
+  const minFee = estimateFee(selected.length, hasChange ? 2 : 1)
+  if (minFee > fee) {
+    fee       = minFee
+    selected  = selectUtxos(utxos, amount + fee)
+    total     = selected.reduce((s, u) => s + BigInt(u.value), 0n)
+    change    = total - amount - fee
+    hasChange = change >= DUST_THRESHOLD
   }
 
   const outCount = hasChange ? 2 : 1
@@ -250,16 +249,18 @@ export async function buildBatchTransaction(params: {
   let change     = inputTotal - totalOut - fee
   let hasChange  = change >= DUST_THRESHOLD
 
-  // Pass 2: recompute with actual input count (skip if fee was provided)
-  if (params.fee === undefined) {
-    const refinedFee = estimateFee(selected.length, hasChange ? recipients.length + 1 : recipients.length)
-    if (refinedFee !== fee) {
-      fee       = refinedFee
-      selected  = selectUtxos(utxos, totalOut + fee)
-      inputTotal = selected.reduce((s, u) => s + BigInt(u.value), 0n)
-      change     = inputTotal - totalOut - fee
-      hasChange  = change >= DUST_THRESHOLD
-    }
+  // Pass 2: always verify the fee meets the network minimum for the actual
+  // input/output count, even when the caller provided an explicit fee.
+  const minFee = estimateFee(
+    selected.length,
+    hasChange ? recipients.length + 1 : recipients.length,
+  )
+  if (minFee > fee) {
+    fee        = minFee
+    selected   = selectUtxos(utxos, totalOut + fee)
+    inputTotal = selected.reduce((s, u) => s + BigInt(u.value), 0n)
+    change     = inputTotal - totalOut - fee
+    hasChange  = change >= DUST_THRESHOLD
   }
 
   const outCount = hasChange ? recipients.length + 1 : recipients.length
